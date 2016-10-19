@@ -2,22 +2,25 @@ FROM php:7.0-apache
 
 # Make add images to html folder and mediawiki folder to opt directory
 
-RUN mkdir -p /var/www/html/images && \
-    mkdir -p /var/www/html/upload \
-    mkdir -p /var/www/html/cache \
-    mkdir -p /var/www/html/config \
-    mkdir -p /opt/mediawiki
+RUN mkdir /root/scripts
+COPY scripts/mkfolders.sh /root/scripts
 
-COPY /mediawiki /opt/mediawiki
+RUN apt-get update && \
+    apt-get install -y imagemagick \
+    wget
+  
+RUN mkdir /opt/mediawiki
+COPY /LocalSettings.php /opt/mediawiki
 
-# Remove folders from operating folder as created before directly in web folder     
-RUN rm -rf /opt/mediawiki/images && \
-    rm -rf /opt/mediawiki/upload \
-    rm -rf /opt/mediawiki/cache \
-    rm -rf /opt/mediawiki/config
+WORKDIR "/opt/"
+RUN     wget https://releases.wikimedia.org/mediawiki/1.27/mediawiki-1.27.1.tar.gz && \
+        tar -xvzf mediawiki-1.27.1.tar.gz && \
+        mv /opt/mediawiki-1.27.1/* /opt/mediawiki
 
-# Create softlink from mediawiki folder to web root 
-RUN ln -s /opt/mediawiki/* /var/www/html/
+RUN chmod +x /root/scripts/mkfolders.sh && \
+    bash -c "/root/scripts/mkfolders.sh"
+
+COPY images/ /var/www/html/images/
 
 # Change owner to apache
 RUN chown -R www-data:www-data /var/www/html && \
